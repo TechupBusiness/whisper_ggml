@@ -23,18 +23,32 @@ mixin _$TranscribeRequest {
 /// biasing (matches whisper.cpp's default of `nullptr`).
 ///
 /// See OpenAI's transcription docs for guidance on prompt content.
- String? get initialPrompt;/// Sets `whisper_full_params.no_context` on the native side. Equivalent
-/// to Python whisper's `condition_on_previous_text=False`.
+ String? get initialPrompt;/// Sets `whisper_full_params.no_context` on the native side.
 ///
-/// When `true`, whisper.cpp does NOT feed prior-segment transcripts
-/// into the decoder as context. Useful for short single-utterance
-/// transcription (e.g. verse recitation) where carry-over context
-/// can bias the decoder toward hallucinated repetition or "tail of
-/// utterance" attractors.
+/// When `true`, whisper.cpp discards decoded text that an earlier
+/// transcription left on the same model context before it starts.
+/// It does not stop each 30-second window of *this* request from being
+/// conditioned on the windows before it; use [maxContext] (`0`) for
+/// that, which is the equivalent of Python whisper's
+/// `condition_on_previous_text=False`.
 ///
-/// Default `false` matches whisper.cpp's default and the behaviour
-/// of every previous version of this package.
- bool get noContext;/// Sets `whisper_full_params.suppress_non_speech_tokens` on the
+/// Default `false` keeps the behaviour of every previous version of
+/// this package.
+ bool get noContext;/// Sets `whisper_full_params.n_max_text_ctx` on the native side: the
+/// maximum number of previously decoded tokens that condition each
+/// following 30-second window within one request (whisper.cpp CLI
+/// `--max-context` / `-mc`).
+///
+/// `0` decodes every window without the text before it, the equivalent
+/// of Python whisper's `condition_on_previous_text=False`. On long
+/// recordings this stops a single hallucinated phrase from repeating
+/// window after window, at the cost of less consistent style and
+/// punctuation across windows. whisper.cpp applies [initialPrompt]
+/// through the same budget, so `0` also disables [initialPrompt].
+///
+/// Null (default) or a negative value keeps whisper.cpp's default
+/// (16384, i.e. bounded only by the model's text context).
+ int? get maxContext;/// Sets `whisper_full_params.suppress_non_speech_tokens` on the
 /// native side.
 ///
 /// When `true`, whisper does not emit non-speech annotation tokens
@@ -106,16 +120,16 @@ $TranscribeRequestCopyWith<TranscribeRequest> get copyWith => _$TranscribeReques
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TranscribeRequest&&(identical(other.audio, audio) || other.audio == audio)&&(identical(other.isTranslate, isTranslate) || other.isTranslate == isTranslate)&&(identical(other.threads, threads) || other.threads == threads)&&(identical(other.isVerbose, isVerbose) || other.isVerbose == isVerbose)&&(identical(other.language, language) || other.language == language)&&(identical(other.isSpecialTokens, isSpecialTokens) || other.isSpecialTokens == isSpecialTokens)&&(identical(other.isNoTimestamps, isNoTimestamps) || other.isNoTimestamps == isNoTimestamps)&&(identical(other.isRealtime, isRealtime) || other.isRealtime == isRealtime)&&(identical(other.nProcessors, nProcessors) || other.nProcessors == nProcessors)&&(identical(other.splitOnWord, splitOnWord) || other.splitOnWord == splitOnWord)&&(identical(other.noFallback, noFallback) || other.noFallback == noFallback)&&(identical(other.diarize, diarize) || other.diarize == diarize)&&(identical(other.speedUp, speedUp) || other.speedUp == speedUp)&&(identical(other.realtimeStream, realtimeStream) || other.realtimeStream == realtimeStream)&&(identical(other.initialPrompt, initialPrompt) || other.initialPrompt == initialPrompt)&&(identical(other.noContext, noContext) || other.noContext == noContext)&&(identical(other.suppressNonSpeechTokens, suppressNonSpeechTokens) || other.suppressNonSpeechTokens == suppressNonSpeechTokens)&&(identical(other.keepModelLoaded, keepModelLoaded) || other.keepModelLoaded == keepModelLoaded)&&(identical(other.vadModelPath, vadModelPath) || other.vadModelPath == vadModelPath)&&(identical(other.vadSpeechPadMs, vadSpeechPadMs) || other.vadSpeechPadMs == vadSpeechPadMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TranscribeRequest&&(identical(other.audio, audio) || other.audio == audio)&&(identical(other.isTranslate, isTranslate) || other.isTranslate == isTranslate)&&(identical(other.threads, threads) || other.threads == threads)&&(identical(other.isVerbose, isVerbose) || other.isVerbose == isVerbose)&&(identical(other.language, language) || other.language == language)&&(identical(other.isSpecialTokens, isSpecialTokens) || other.isSpecialTokens == isSpecialTokens)&&(identical(other.isNoTimestamps, isNoTimestamps) || other.isNoTimestamps == isNoTimestamps)&&(identical(other.isRealtime, isRealtime) || other.isRealtime == isRealtime)&&(identical(other.nProcessors, nProcessors) || other.nProcessors == nProcessors)&&(identical(other.splitOnWord, splitOnWord) || other.splitOnWord == splitOnWord)&&(identical(other.noFallback, noFallback) || other.noFallback == noFallback)&&(identical(other.diarize, diarize) || other.diarize == diarize)&&(identical(other.speedUp, speedUp) || other.speedUp == speedUp)&&(identical(other.realtimeStream, realtimeStream) || other.realtimeStream == realtimeStream)&&(identical(other.initialPrompt, initialPrompt) || other.initialPrompt == initialPrompt)&&(identical(other.noContext, noContext) || other.noContext == noContext)&&(identical(other.maxContext, maxContext) || other.maxContext == maxContext)&&(identical(other.suppressNonSpeechTokens, suppressNonSpeechTokens) || other.suppressNonSpeechTokens == suppressNonSpeechTokens)&&(identical(other.keepModelLoaded, keepModelLoaded) || other.keepModelLoaded == keepModelLoaded)&&(identical(other.vadModelPath, vadModelPath) || other.vadModelPath == vadModelPath)&&(identical(other.vadSpeechPadMs, vadSpeechPadMs) || other.vadSpeechPadMs == vadSpeechPadMs));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,audio,isTranslate,threads,isVerbose,language,isSpecialTokens,isNoTimestamps,isRealtime,nProcessors,splitOnWord,noFallback,diarize,speedUp,realtimeStream,initialPrompt,noContext,suppressNonSpeechTokens,keepModelLoaded,vadModelPath,vadSpeechPadMs]);
+int get hashCode => Object.hashAll([runtimeType,audio,isTranslate,threads,isVerbose,language,isSpecialTokens,isNoTimestamps,isRealtime,nProcessors,splitOnWord,noFallback,diarize,speedUp,realtimeStream,initialPrompt,noContext,maxContext,suppressNonSpeechTokens,keepModelLoaded,vadModelPath,vadSpeechPadMs]);
 
 @override
 String toString() {
-  return 'TranscribeRequest(audio: $audio, isTranslate: $isTranslate, threads: $threads, isVerbose: $isVerbose, language: $language, isSpecialTokens: $isSpecialTokens, isNoTimestamps: $isNoTimestamps, isRealtime: $isRealtime, nProcessors: $nProcessors, splitOnWord: $splitOnWord, noFallback: $noFallback, diarize: $diarize, speedUp: $speedUp, realtimeStream: $realtimeStream, initialPrompt: $initialPrompt, noContext: $noContext, suppressNonSpeechTokens: $suppressNonSpeechTokens, keepModelLoaded: $keepModelLoaded, vadModelPath: $vadModelPath, vadSpeechPadMs: $vadSpeechPadMs)';
+  return 'TranscribeRequest(audio: $audio, isTranslate: $isTranslate, threads: $threads, isVerbose: $isVerbose, language: $language, isSpecialTokens: $isSpecialTokens, isNoTimestamps: $isNoTimestamps, isRealtime: $isRealtime, nProcessors: $nProcessors, splitOnWord: $splitOnWord, noFallback: $noFallback, diarize: $diarize, speedUp: $speedUp, realtimeStream: $realtimeStream, initialPrompt: $initialPrompt, noContext: $noContext, maxContext: $maxContext, suppressNonSpeechTokens: $suppressNonSpeechTokens, keepModelLoaded: $keepModelLoaded, vadModelPath: $vadModelPath, vadSpeechPadMs: $vadSpeechPadMs)';
 }
 
 
@@ -126,7 +140,7 @@ abstract mixin class $TranscribeRequestCopyWith<$Res>  {
   factory $TranscribeRequestCopyWith(TranscribeRequest value, $Res Function(TranscribeRequest) _then) = _$TranscribeRequestCopyWithImpl;
 @useResult
 $Res call({
- String audio, bool isTranslate, int threads, bool isVerbose, String language, bool isSpecialTokens, bool isNoTimestamps, bool isRealtime, int nProcessors, bool splitOnWord, bool noFallback, bool diarize, bool speedUp, Stream<String>? realtimeStream, String? initialPrompt, bool noContext, bool suppressNonSpeechTokens, bool keepModelLoaded, String? vadModelPath, int? vadSpeechPadMs
+ String audio, bool isTranslate, int threads, bool isVerbose, String language, bool isSpecialTokens, bool isNoTimestamps, bool isRealtime, int nProcessors, bool splitOnWord, bool noFallback, bool diarize, bool speedUp, Stream<String>? realtimeStream, String? initialPrompt, bool noContext, int? maxContext, bool suppressNonSpeechTokens, bool keepModelLoaded, String? vadModelPath, int? vadSpeechPadMs
 });
 
 
@@ -143,7 +157,7 @@ class _$TranscribeRequestCopyWithImpl<$Res>
 
 /// Create a copy of TranscribeRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? audio = null,Object? isTranslate = null,Object? threads = null,Object? isVerbose = null,Object? language = null,Object? isSpecialTokens = null,Object? isNoTimestamps = null,Object? isRealtime = null,Object? nProcessors = null,Object? splitOnWord = null,Object? noFallback = null,Object? diarize = null,Object? speedUp = null,Object? realtimeStream = freezed,Object? initialPrompt = freezed,Object? noContext = null,Object? suppressNonSpeechTokens = null,Object? keepModelLoaded = null,Object? vadModelPath = freezed,Object? vadSpeechPadMs = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? audio = null,Object? isTranslate = null,Object? threads = null,Object? isVerbose = null,Object? language = null,Object? isSpecialTokens = null,Object? isNoTimestamps = null,Object? isRealtime = null,Object? nProcessors = null,Object? splitOnWord = null,Object? noFallback = null,Object? diarize = null,Object? speedUp = null,Object? realtimeStream = freezed,Object? initialPrompt = freezed,Object? noContext = null,Object? maxContext = freezed,Object? suppressNonSpeechTokens = null,Object? keepModelLoaded = null,Object? vadModelPath = freezed,Object? vadSpeechPadMs = freezed,}) {
   return _then(_self.copyWith(
 audio: null == audio ? _self.audio : audio // ignore: cast_nullable_to_non_nullable
 as String,isTranslate: null == isTranslate ? _self.isTranslate : isTranslate // ignore: cast_nullable_to_non_nullable
@@ -161,7 +175,8 @@ as bool,speedUp: null == speedUp ? _self.speedUp : speedUp // ignore: cast_nulla
 as bool,realtimeStream: freezed == realtimeStream ? _self.realtimeStream : realtimeStream // ignore: cast_nullable_to_non_nullable
 as Stream<String>?,initialPrompt: freezed == initialPrompt ? _self.initialPrompt : initialPrompt // ignore: cast_nullable_to_non_nullable
 as String?,noContext: null == noContext ? _self.noContext : noContext // ignore: cast_nullable_to_non_nullable
-as bool,suppressNonSpeechTokens: null == suppressNonSpeechTokens ? _self.suppressNonSpeechTokens : suppressNonSpeechTokens // ignore: cast_nullable_to_non_nullable
+as bool,maxContext: freezed == maxContext ? _self.maxContext : maxContext // ignore: cast_nullable_to_non_nullable
+as int?,suppressNonSpeechTokens: null == suppressNonSpeechTokens ? _self.suppressNonSpeechTokens : suppressNonSpeechTokens // ignore: cast_nullable_to_non_nullable
 as bool,keepModelLoaded: null == keepModelLoaded ? _self.keepModelLoaded : keepModelLoaded // ignore: cast_nullable_to_non_nullable
 as bool,vadModelPath: freezed == vadModelPath ? _self.vadModelPath : vadModelPath // ignore: cast_nullable_to_non_nullable
 as String?,vadSpeechPadMs: freezed == vadSpeechPadMs ? _self.vadSpeechPadMs : vadSpeechPadMs // ignore: cast_nullable_to_non_nullable
@@ -250,10 +265,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  int? maxContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TranscribeRequest() when $default != null:
-return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
+return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.maxContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
   return orElse();
 
 }
@@ -271,10 +286,10 @@ return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  int? maxContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)  $default,) {final _that = this;
 switch (_that) {
 case _TranscribeRequest():
-return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
+return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.maxContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -291,10 +306,10 @@ return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String audio,  bool isTranslate,  int threads,  bool isVerbose,  String language,  bool isSpecialTokens,  bool isNoTimestamps,  bool isRealtime,  int nProcessors,  bool splitOnWord,  bool noFallback,  bool diarize,  bool speedUp,  Stream<String>? realtimeStream,  String? initialPrompt,  bool noContext,  int? maxContext,  bool suppressNonSpeechTokens,  bool keepModelLoaded,  String? vadModelPath,  int? vadSpeechPadMs)?  $default,) {final _that = this;
 switch (_that) {
 case _TranscribeRequest() when $default != null:
-return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
+return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_that.language,_that.isSpecialTokens,_that.isNoTimestamps,_that.isRealtime,_that.nProcessors,_that.splitOnWord,_that.noFallback,_that.diarize,_that.speedUp,_that.realtimeStream,_that.initialPrompt,_that.noContext,_that.maxContext,_that.suppressNonSpeechTokens,_that.keepModelLoaded,_that.vadModelPath,_that.vadSpeechPadMs);case _:
   return null;
 
 }
@@ -306,7 +321,7 @@ return $default(_that.audio,_that.isTranslate,_that.threads,_that.isVerbose,_tha
 
 
 class _TranscribeRequest extends TranscribeRequest {
-  const _TranscribeRequest({required this.audio, this.isTranslate = false, this.threads = 6, this.isVerbose = false, this.language = 'en', this.isSpecialTokens = false, this.isNoTimestamps = false, this.isRealtime = false, this.nProcessors = 1, this.splitOnWord = false, this.noFallback = false, this.diarize = false, this.speedUp = false, this.realtimeStream = null, this.initialPrompt = null, this.noContext = false, this.suppressNonSpeechTokens = false, this.keepModelLoaded = false, this.vadModelPath = null, this.vadSpeechPadMs = null}): super._();
+  const _TranscribeRequest({required this.audio, this.isTranslate = false, this.threads = 6, this.isVerbose = false, this.language = 'en', this.isSpecialTokens = false, this.isNoTimestamps = false, this.isRealtime = false, this.nProcessors = 1, this.splitOnWord = false, this.noFallback = false, this.diarize = false, this.speedUp = false, this.realtimeStream = null, this.initialPrompt = null, this.noContext = false, this.maxContext = null, this.suppressNonSpeechTokens = false, this.keepModelLoaded = false, this.vadModelPath = null, this.vadSpeechPadMs = null}): super._();
   
 
 @override final  String audio;
@@ -333,18 +348,33 @@ class _TranscribeRequest extends TranscribeRequest {
 ///
 /// See OpenAI's transcription docs for guidance on prompt content.
 @override@JsonKey() final  String? initialPrompt;
-/// Sets `whisper_full_params.no_context` on the native side. Equivalent
-/// to Python whisper's `condition_on_previous_text=False`.
+/// Sets `whisper_full_params.no_context` on the native side.
 ///
-/// When `true`, whisper.cpp does NOT feed prior-segment transcripts
-/// into the decoder as context. Useful for short single-utterance
-/// transcription (e.g. verse recitation) where carry-over context
-/// can bias the decoder toward hallucinated repetition or "tail of
-/// utterance" attractors.
+/// When `true`, whisper.cpp discards decoded text that an earlier
+/// transcription left on the same model context before it starts.
+/// It does not stop each 30-second window of *this* request from being
+/// conditioned on the windows before it; use [maxContext] (`0`) for
+/// that, which is the equivalent of Python whisper's
+/// `condition_on_previous_text=False`.
 ///
-/// Default `false` matches whisper.cpp's default and the behaviour
-/// of every previous version of this package.
+/// Default `false` keeps the behaviour of every previous version of
+/// this package.
 @override@JsonKey() final  bool noContext;
+/// Sets `whisper_full_params.n_max_text_ctx` on the native side: the
+/// maximum number of previously decoded tokens that condition each
+/// following 30-second window within one request (whisper.cpp CLI
+/// `--max-context` / `-mc`).
+///
+/// `0` decodes every window without the text before it, the equivalent
+/// of Python whisper's `condition_on_previous_text=False`. On long
+/// recordings this stops a single hallucinated phrase from repeating
+/// window after window, at the cost of less consistent style and
+/// punctuation across windows. whisper.cpp applies [initialPrompt]
+/// through the same budget, so `0` also disables [initialPrompt].
+///
+/// Null (default) or a negative value keeps whisper.cpp's default
+/// (16384, i.e. bounded only by the model's text context).
+@override@JsonKey() final  int? maxContext;
 /// Sets `whisper_full_params.suppress_non_speech_tokens` on the
 /// native side.
 ///
@@ -421,16 +451,16 @@ _$TranscribeRequestCopyWith<_TranscribeRequest> get copyWith => __$TranscribeReq
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TranscribeRequest&&(identical(other.audio, audio) || other.audio == audio)&&(identical(other.isTranslate, isTranslate) || other.isTranslate == isTranslate)&&(identical(other.threads, threads) || other.threads == threads)&&(identical(other.isVerbose, isVerbose) || other.isVerbose == isVerbose)&&(identical(other.language, language) || other.language == language)&&(identical(other.isSpecialTokens, isSpecialTokens) || other.isSpecialTokens == isSpecialTokens)&&(identical(other.isNoTimestamps, isNoTimestamps) || other.isNoTimestamps == isNoTimestamps)&&(identical(other.isRealtime, isRealtime) || other.isRealtime == isRealtime)&&(identical(other.nProcessors, nProcessors) || other.nProcessors == nProcessors)&&(identical(other.splitOnWord, splitOnWord) || other.splitOnWord == splitOnWord)&&(identical(other.noFallback, noFallback) || other.noFallback == noFallback)&&(identical(other.diarize, diarize) || other.diarize == diarize)&&(identical(other.speedUp, speedUp) || other.speedUp == speedUp)&&(identical(other.realtimeStream, realtimeStream) || other.realtimeStream == realtimeStream)&&(identical(other.initialPrompt, initialPrompt) || other.initialPrompt == initialPrompt)&&(identical(other.noContext, noContext) || other.noContext == noContext)&&(identical(other.suppressNonSpeechTokens, suppressNonSpeechTokens) || other.suppressNonSpeechTokens == suppressNonSpeechTokens)&&(identical(other.keepModelLoaded, keepModelLoaded) || other.keepModelLoaded == keepModelLoaded)&&(identical(other.vadModelPath, vadModelPath) || other.vadModelPath == vadModelPath)&&(identical(other.vadSpeechPadMs, vadSpeechPadMs) || other.vadSpeechPadMs == vadSpeechPadMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TranscribeRequest&&(identical(other.audio, audio) || other.audio == audio)&&(identical(other.isTranslate, isTranslate) || other.isTranslate == isTranslate)&&(identical(other.threads, threads) || other.threads == threads)&&(identical(other.isVerbose, isVerbose) || other.isVerbose == isVerbose)&&(identical(other.language, language) || other.language == language)&&(identical(other.isSpecialTokens, isSpecialTokens) || other.isSpecialTokens == isSpecialTokens)&&(identical(other.isNoTimestamps, isNoTimestamps) || other.isNoTimestamps == isNoTimestamps)&&(identical(other.isRealtime, isRealtime) || other.isRealtime == isRealtime)&&(identical(other.nProcessors, nProcessors) || other.nProcessors == nProcessors)&&(identical(other.splitOnWord, splitOnWord) || other.splitOnWord == splitOnWord)&&(identical(other.noFallback, noFallback) || other.noFallback == noFallback)&&(identical(other.diarize, diarize) || other.diarize == diarize)&&(identical(other.speedUp, speedUp) || other.speedUp == speedUp)&&(identical(other.realtimeStream, realtimeStream) || other.realtimeStream == realtimeStream)&&(identical(other.initialPrompt, initialPrompt) || other.initialPrompt == initialPrompt)&&(identical(other.noContext, noContext) || other.noContext == noContext)&&(identical(other.maxContext, maxContext) || other.maxContext == maxContext)&&(identical(other.suppressNonSpeechTokens, suppressNonSpeechTokens) || other.suppressNonSpeechTokens == suppressNonSpeechTokens)&&(identical(other.keepModelLoaded, keepModelLoaded) || other.keepModelLoaded == keepModelLoaded)&&(identical(other.vadModelPath, vadModelPath) || other.vadModelPath == vadModelPath)&&(identical(other.vadSpeechPadMs, vadSpeechPadMs) || other.vadSpeechPadMs == vadSpeechPadMs));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,audio,isTranslate,threads,isVerbose,language,isSpecialTokens,isNoTimestamps,isRealtime,nProcessors,splitOnWord,noFallback,diarize,speedUp,realtimeStream,initialPrompt,noContext,suppressNonSpeechTokens,keepModelLoaded,vadModelPath,vadSpeechPadMs]);
+int get hashCode => Object.hashAll([runtimeType,audio,isTranslate,threads,isVerbose,language,isSpecialTokens,isNoTimestamps,isRealtime,nProcessors,splitOnWord,noFallback,diarize,speedUp,realtimeStream,initialPrompt,noContext,maxContext,suppressNonSpeechTokens,keepModelLoaded,vadModelPath,vadSpeechPadMs]);
 
 @override
 String toString() {
-  return 'TranscribeRequest(audio: $audio, isTranslate: $isTranslate, threads: $threads, isVerbose: $isVerbose, language: $language, isSpecialTokens: $isSpecialTokens, isNoTimestamps: $isNoTimestamps, isRealtime: $isRealtime, nProcessors: $nProcessors, splitOnWord: $splitOnWord, noFallback: $noFallback, diarize: $diarize, speedUp: $speedUp, realtimeStream: $realtimeStream, initialPrompt: $initialPrompt, noContext: $noContext, suppressNonSpeechTokens: $suppressNonSpeechTokens, keepModelLoaded: $keepModelLoaded, vadModelPath: $vadModelPath, vadSpeechPadMs: $vadSpeechPadMs)';
+  return 'TranscribeRequest(audio: $audio, isTranslate: $isTranslate, threads: $threads, isVerbose: $isVerbose, language: $language, isSpecialTokens: $isSpecialTokens, isNoTimestamps: $isNoTimestamps, isRealtime: $isRealtime, nProcessors: $nProcessors, splitOnWord: $splitOnWord, noFallback: $noFallback, diarize: $diarize, speedUp: $speedUp, realtimeStream: $realtimeStream, initialPrompt: $initialPrompt, noContext: $noContext, maxContext: $maxContext, suppressNonSpeechTokens: $suppressNonSpeechTokens, keepModelLoaded: $keepModelLoaded, vadModelPath: $vadModelPath, vadSpeechPadMs: $vadSpeechPadMs)';
 }
 
 
@@ -441,7 +471,7 @@ abstract mixin class _$TranscribeRequestCopyWith<$Res> implements $TranscribeReq
   factory _$TranscribeRequestCopyWith(_TranscribeRequest value, $Res Function(_TranscribeRequest) _then) = __$TranscribeRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String audio, bool isTranslate, int threads, bool isVerbose, String language, bool isSpecialTokens, bool isNoTimestamps, bool isRealtime, int nProcessors, bool splitOnWord, bool noFallback, bool diarize, bool speedUp, Stream<String>? realtimeStream, String? initialPrompt, bool noContext, bool suppressNonSpeechTokens, bool keepModelLoaded, String? vadModelPath, int? vadSpeechPadMs
+ String audio, bool isTranslate, int threads, bool isVerbose, String language, bool isSpecialTokens, bool isNoTimestamps, bool isRealtime, int nProcessors, bool splitOnWord, bool noFallback, bool diarize, bool speedUp, Stream<String>? realtimeStream, String? initialPrompt, bool noContext, int? maxContext, bool suppressNonSpeechTokens, bool keepModelLoaded, String? vadModelPath, int? vadSpeechPadMs
 });
 
 
@@ -458,7 +488,7 @@ class __$TranscribeRequestCopyWithImpl<$Res>
 
 /// Create a copy of TranscribeRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? audio = null,Object? isTranslate = null,Object? threads = null,Object? isVerbose = null,Object? language = null,Object? isSpecialTokens = null,Object? isNoTimestamps = null,Object? isRealtime = null,Object? nProcessors = null,Object? splitOnWord = null,Object? noFallback = null,Object? diarize = null,Object? speedUp = null,Object? realtimeStream = freezed,Object? initialPrompt = freezed,Object? noContext = null,Object? suppressNonSpeechTokens = null,Object? keepModelLoaded = null,Object? vadModelPath = freezed,Object? vadSpeechPadMs = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? audio = null,Object? isTranslate = null,Object? threads = null,Object? isVerbose = null,Object? language = null,Object? isSpecialTokens = null,Object? isNoTimestamps = null,Object? isRealtime = null,Object? nProcessors = null,Object? splitOnWord = null,Object? noFallback = null,Object? diarize = null,Object? speedUp = null,Object? realtimeStream = freezed,Object? initialPrompt = freezed,Object? noContext = null,Object? maxContext = freezed,Object? suppressNonSpeechTokens = null,Object? keepModelLoaded = null,Object? vadModelPath = freezed,Object? vadSpeechPadMs = freezed,}) {
   return _then(_TranscribeRequest(
 audio: null == audio ? _self.audio : audio // ignore: cast_nullable_to_non_nullable
 as String,isTranslate: null == isTranslate ? _self.isTranslate : isTranslate // ignore: cast_nullable_to_non_nullable
@@ -476,7 +506,8 @@ as bool,speedUp: null == speedUp ? _self.speedUp : speedUp // ignore: cast_nulla
 as bool,realtimeStream: freezed == realtimeStream ? _self.realtimeStream : realtimeStream // ignore: cast_nullable_to_non_nullable
 as Stream<String>?,initialPrompt: freezed == initialPrompt ? _self.initialPrompt : initialPrompt // ignore: cast_nullable_to_non_nullable
 as String?,noContext: null == noContext ? _self.noContext : noContext // ignore: cast_nullable_to_non_nullable
-as bool,suppressNonSpeechTokens: null == suppressNonSpeechTokens ? _self.suppressNonSpeechTokens : suppressNonSpeechTokens // ignore: cast_nullable_to_non_nullable
+as bool,maxContext: freezed == maxContext ? _self.maxContext : maxContext // ignore: cast_nullable_to_non_nullable
+as int?,suppressNonSpeechTokens: null == suppressNonSpeechTokens ? _self.suppressNonSpeechTokens : suppressNonSpeechTokens // ignore: cast_nullable_to_non_nullable
 as bool,keepModelLoaded: null == keepModelLoaded ? _self.keepModelLoaded : keepModelLoaded // ignore: cast_nullable_to_non_nullable
 as bool,vadModelPath: freezed == vadModelPath ? _self.vadModelPath : vadModelPath // ignore: cast_nullable_to_non_nullable
 as String?,vadSpeechPadMs: freezed == vadSpeechPadMs ? _self.vadSpeechPadMs : vadSpeechPadMs // ignore: cast_nullable_to_non_nullable

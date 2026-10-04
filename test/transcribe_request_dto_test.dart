@@ -109,10 +109,7 @@ void main() {
       expect(defaultBody['keep_model_loaded'], isFalse);
 
       final dto = TranscribeRequestDto.fromTranscribeRequest(
-        const TranscribeRequest(
-          audio: '/tmp/audio.wav',
-          keepModelLoaded: true,
-        ),
+        const TranscribeRequest(audio: '/tmp/audio.wav', keepModelLoaded: true),
         '/tmp/model.bin',
       );
       final body = json.decode(dto.toRequestString()) as Map<String, dynamic>;
@@ -151,6 +148,27 @@ void main() {
       final body = json.decode(dto.toRequestString()) as Map<String, dynamic>;
       expect(body['vad_model'], isNull);
       expect(body['vad_speech_pad_ms'], 250);
+    });
+
+    test('max_context is null by default and forwards 0 and a budget', () {
+      final defaultDto = TranscribeRequestDto.fromTranscribeRequest(
+        request(),
+        '/tmp/model.bin',
+      );
+      final defaultBody =
+          json.decode(defaultDto.toRequestString()) as Map<String, dynamic>;
+      // Null on the wire: the native side keeps n_max_text_ctx's default.
+      expect(defaultBody.containsKey('max_context'), isTrue);
+      expect(defaultBody['max_context'], isNull);
+
+      for (final maxContext in [0, 64]) {
+        final dto = TranscribeRequestDto.fromTranscribeRequest(
+          TranscribeRequest(audio: '/tmp/audio.wav', maxContext: maxContext),
+          '/tmp/model.bin',
+        );
+        final body = json.decode(dto.toRequestString()) as Map<String, dynamic>;
+        expect(body['max_context'], maxContext);
+      }
     });
   });
 }

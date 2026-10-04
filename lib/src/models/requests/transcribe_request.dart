@@ -32,18 +32,34 @@ abstract class TranscribeRequest with _$TranscribeRequest {
     /// See OpenAI's transcription docs for guidance on prompt content.
     @Default(null) String? initialPrompt,
 
-    /// Sets `whisper_full_params.no_context` on the native side. Equivalent
-    /// to Python whisper's `condition_on_previous_text=False`.
+    /// Sets `whisper_full_params.no_context` on the native side.
     ///
-    /// When `true`, whisper.cpp does NOT feed prior-segment transcripts
-    /// into the decoder as context. Useful for short single-utterance
-    /// transcription (e.g. verse recitation) where carry-over context
-    /// can bias the decoder toward hallucinated repetition or "tail of
-    /// utterance" attractors.
+    /// When `true`, whisper.cpp discards decoded text that an earlier
+    /// transcription left on the same model context before it starts.
+    /// It does not stop each 30-second window of *this* request from being
+    /// conditioned on the windows before it; use [maxContext] (`0`) for
+    /// that, which is the equivalent of Python whisper's
+    /// `condition_on_previous_text=False`.
     ///
-    /// Default `false` matches whisper.cpp's default and the behaviour
-    /// of every previous version of this package.
+    /// Default `false` keeps the behaviour of every previous version of
+    /// this package.
     @Default(false) bool noContext,
+
+    /// Sets `whisper_full_params.n_max_text_ctx` on the native side: the
+    /// maximum number of previously decoded tokens that condition each
+    /// following 30-second window within one request (whisper.cpp CLI
+    /// `--max-context` / `-mc`).
+    ///
+    /// `0` decodes every window without the text before it, the equivalent
+    /// of Python whisper's `condition_on_previous_text=False`. On long
+    /// recordings this stops a single hallucinated phrase from repeating
+    /// window after window, at the cost of less consistent style and
+    /// punctuation across windows. whisper.cpp applies [initialPrompt]
+    /// through the same budget, so `0` also disables [initialPrompt].
+    ///
+    /// Null (default) or a negative value keeps whisper.cpp's default
+    /// (16384, i.e. bounded only by the model's text context).
+    @Default(null) int? maxContext,
 
     /// Sets `whisper_full_params.suppress_non_speech_tokens` on the
     /// native side.

@@ -32,6 +32,9 @@ abstract class TranscribeRequestDto
     @JsonKey(name: 'speed_up') required bool speedUp,
     @JsonKey(name: 'initial_prompt') String? initialPrompt,
     @JsonKey(name: 'no_context') @Default(false) bool noContext,
+
+    /// n_max_text_ctx override; null keeps whisper.cpp's default.
+    @JsonKey(name: 'max_context') int? maxContext,
     @JsonKey(name: 'suppress_non_speech_tokens')
     @Default(false)
     bool suppressNonSpeechTokens,
@@ -71,6 +74,7 @@ abstract class TranscribeRequestDto
       isRealtime: request.isRealtime,
       initialPrompt: request.initialPrompt,
       noContext: request.noContext,
+      maxContext: request.maxContext,
       suppressNonSpeechTokens: request.suppressNonSpeechTokens,
       progressCallback: progressCallbackAddress,
       keepModelLoaded: request.keepModelLoaded,

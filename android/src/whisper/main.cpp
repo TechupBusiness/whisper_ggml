@@ -66,7 +66,9 @@ struct whisper_params
     bool print_progress = false;
     bool no_timestamps = false;
     bool split_on_word = false;
-    // whisper_full_params.no_context: disable cross-segment text conditioning.
+    // whisper_full_params.no_context: drop decoded text left on the context
+    // by an earlier whisper_full() call. Within one call, carry-over between
+    // windows is bounded by max_context (n_max_text_ctx) instead.
     bool no_context = false;
     // whisper_full_params.suppress_non_speech_tokens: drop [BLANK_AUDIO]-style annotations.
     bool suppress_nst = false;
@@ -173,6 +175,10 @@ json transcribe(json jsonBody) noexcept
     if (jsonBody.contains("no_context") && jsonBody["no_context"].is_boolean())
     {
         params.no_context = jsonBody["no_context"].get<bool>();
+    }
+    if (jsonBody.contains("max_context") && jsonBody["max_context"].is_number_integer())
+    {
+        params.max_context = jsonBody["max_context"].get<int32_t>();
     }
     if (jsonBody.contains("suppress_non_speech_tokens") && jsonBody["suppress_non_speech_tokens"].is_boolean())
     {
@@ -380,6 +386,13 @@ json transcribe(json jsonBody) noexcept
         // must transcribe exactly like a cold one. initial_prompt is
         // unaffected — whisper re-applies it after the clear.
         wparams.no_context = params.no_context || reused_ctx;
+        // Bound how much previously decoded text conditions each following
+        // 30 s window inside this request (whisper.cpp CLI `-mc`). 0 stops
+        // the carry-over that lets one hallucinated phrase repeat across a
+        // long recording; negative keeps whisper.cpp's default.
+        if (params.max_context >= 0) {
+            wparams.n_max_text_ctx = params.max_context;
+        }
         wparams.suppress_nst = params.suppress_nst;
 
         // params.vad_model outlives whisper_full(), so the pointer stays
