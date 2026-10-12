@@ -106,6 +106,10 @@ class WhisperController {
   /// [vadModelPath] enables whisper.cpp's built-in Silero VAD, trimming
   /// non-speech before decoding; [vadSpeechPadMs] overrides the padding
   /// kept around detected speech — see [TranscribeRequest.vadModelPath].
+  ///
+  /// [maxContext] bounds how much earlier text conditions each following
+  /// 30-second window; `0` stops a hallucinated phrase from repeating
+  /// across a long recording — see [TranscribeRequest.maxContext].
   Future<TranscribeResult?> transcribe({
     required WhisperModel model,
     required String audioPath,
@@ -113,6 +117,7 @@ class WhisperController {
     bool diarize = false,
     String? initialPrompt,
     bool noContext = false,
+    int? maxContext,
     bool suppressNonSpeechTokens = false,
     bool withSegments = false,
     bool splitOnWord = false,
@@ -139,6 +144,7 @@ class WhisperController {
           diarize: diarize,
           initialPrompt: initialPrompt,
           noContext: noContext,
+          maxContext: maxContext,
           suppressNonSpeechTokens: suppressNonSpeechTokens,
           keepModelLoaded: keepModelLoaded,
           vadModelPath: vadModelPath,

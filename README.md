@@ -171,12 +171,14 @@ accuracy/speed balance for file transcription on modern phones.
 
 ## Decoding options
 
-Available on both `transcribe` and `transcribeLive`:
+`initialPrompt` and `suppressNonSpeechTokens` work with both `transcribe`
+and `transcribeLive`; `noContext` and `maxContext` are `transcribe`-only.
 
 | Option | Default | What it does |
 |--------|---------|--------------|
 | `initialPrompt` | `null` | Biases decoding toward the vocabulary, names, and punctuation it contains — useful for domain-specific terms that otherwise get misrecognised. Decoding also mimics the prompt's *style*: an unpunctuated prompt tends to produce unpunctuated output. |
-| `noContext` | `false` | Stops whisper from conditioning on prior-segment transcripts (like Python whisper's `condition_on_previous_text=False`). Helps against hallucinated repetition on short, independent utterances. |
+| `noContext` | `false` | Clears decoded text that an earlier transcription left on the model context. It does not stop the 30-second windows of one recording from conditioning on each other — use `maxContext` for that. |
+| `maxContext` | `null` | Caps how many previously decoded tokens condition each following 30-second window (whisper.cpp's `--max-context`). `0` decodes every window on its own — the closest match to Python whisper's `condition_on_previous_text=False` — and stops one hallucinated phrase from repeating through a long recording. whisper.cpp feeds `initialPrompt` through the same budget, so `0` also disables it. `null` keeps whisper.cpp's default. |
 | `suppressNonSpeechTokens` | `false` | Suppresses bracketed annotations such as `[BLANK_AUDIO]` or `[music]`. Side effect: real sounds may decode as plausible-looking words instead, which is why the example keeps it off. |
 
 ## Trimming silence with voice-activity detection (VAD)
